@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <title>Project</title>
+    </head>
+    <style>
+       
+        .remove{
+            display: none;
+        }
+    </style>
+   <body>
+       <div id='main' >
+        {{msg}}
+        <div>
+               <input id='root' class='city' placeholder="root city" /> <br />
+               <button id='down' >+</button>
+            </div>
+            
+            <br/><br/><br/>
+            <button onclick="makeGraph(event)">Next</button>
+        </div>
+        <div id='res' style="display: none;" >
+            <h2>Result:</h2>
+            <h4 id='graph'>Your Graph = </h4>
+            <br/>
+            <div style="display: flex;" >
+                <div>
+                    <label for="start">Start City:</label>
+                    <input id='start' class='start' placeholder="start city..." />
+                </div>
+                <div style="margin: 0 7px;" >
+                    <label for="end">End City:</label>
+                    <input id='end' class='end' placeholder="end city..." />
+                </div>
+            </div>
+            <h2>Enter estimated straight line distence from Cities to Destination:</h2>
+            <div id="straight-input" style="padding: 7px 0;" >
+                
+            </div>
+            <br/><br/>
+            <button onclick="submit(event)">Show Result</button>
+            <br />
+            <br />
+            <h1 id='cost' style="margin: 0 29px;display: none;"></h1>
+        </div>
+        <form>
+            {% csrf_token %}
+            <input type="hidden" name="csrfmiddlewaretoken" value="pHK2CZzBB323BM2Nq7DE2sxnQoBG1jPl" disabled="">
+            <!-- <button type='submit' onclick="test(event)">TEST</button> -->
+        </form>
+   </body>
+
+   <script>
+       window.onload = () => {
+           function getDownBtns(){
+               var Downs = document.querySelectorAll('#down');
+               return Downs;
+           }
+           function getRightBtns(){
+               var Rights = document.querySelectorAll('#right');
+               return Rights;
+           }
+           function handler(e){
+                   e.preventDefault();
+                   let _val = e.target.parentElement.getElementsByClassName('city');
+                   let curId = _val[0].getAttribute('id');
+                   _val[0].setAttribute('id', `${curId.toLowerCase()}-${_val[0].value.toLowerCase()}`)
+                   if(_val[0].value){
+                       e.target.classList.add('remove');
+                       let child = document.createElement('div'); child.style.display = 'flex'; child.style.margin = '10px 0';
+                       child.innerHTML = `<div>
+                           <input class='city' id='${_val[0].value.toLowerCase()}' class="input" placeholder='city' />
+                            <input type='number' class='dist' placeholder='distence' value='0' style='width: 70px' />
+                            <button id='right'>+</button><br />
+                            <button id='down'>+</button> 
+                           </div>`
+                           e.target.parentElement.appendChild(child)
+                           }
+                initialize();
+            }
+            function handler2(e){
+                e.preventDefault();
+                            let _vals = e.target.parentElement.parentElement.parentElement.getElementsByTagName('input');
+                            let _val = e.target.parentElement.getElementsByClassName('city');
+                            if(_val[0].value){
+                                e.target.classList.add('remove');
+                                let child = document.createElement('div'); 
+                                child.style.margin = '0 5px';
+                                child.innerHTML = `<input class="city" id='${_vals[0].value.toLowerCase()}' placeholder='city' />
+                                    <input type='number' class='dist' value='0' placeholder='distence' style='width: 70px'  />
+                                    <button id='right'>+</button><br />
+                                    <button id='down'>+</button> `
+                                e.target.parentElement.parentElement.appendChild(child)
+                                }
+                                
+                initialize();
+            }
+            function handler3(e){
+                e.target.setAttribute('id', `${e.target.id.toLowerCase()}-${e.target.value.toLowerCase()}`)
+            }
+           function initialize(){
+                let _downs = getDownBtns();
+                let _rights = getRightBtns();
+                let inps = document.querySelectorAll('input.city');
+ 
+                 inps.forEach((inpt) => {
+                        inpt.addEventListener('blur', handler3, true);
+                 });
+                _downs.forEach((down) => {
+                        down.addEventListener('click', handler, false);
+                 });
+                _rights.forEach((right) => {
+                        right.addEventListener('click', handler2,true)
+                 });
+               return 0;
+           }
+
+           initialize();
+        }
+        
+        var GRAPH; var straight_line = {};
+
+        function makeGraph(e){
+
+            e.preventDefault();
+
+             let inps = document.querySelectorAll('input.city');
+             let graph = {};
+             let cities = [];
+             let ids = [];
+             let dists = {};
+
+             inps.forEach(inp => {
+                 dists[inp.id] = inp.nextElementSibling.value;
+                 ids.push(inp.id)
+             });
+
+             ids.forEach((id) => {
+                 let split = id.split("-");
+                 cities.push(split[0]);
+                 cities.push(split[split.length-1]);
+                 graph[split[0]] = {
+                     ...graph[split[0]],
+                     [split[split.length-1]]: dists[id]
+                 }
+             })
+
+             delete graph.root;
+             cities = cities.filter((c) => c !== 'root')
+
+             cities = [...new Set(cities)]
+            //  console.log(graph);
+            //  console.log(cities);
+             GRAPH = graph;
+             const main = document.getElementById('main');
+             main.style.display = 'none';
+             const res = document.getElementById('res');
+             res.style.display = 'inline-block';
+             const test = document.getElementById('graph');
+             test.innerHTML += '{';
+             test.innerHTML += `<br/>`;
+             Object.keys(graph).forEach(k => {
+                 test.innerHTML += `${k}: ${JSON.stringify(graph[k])}`;
+                 test.innerHTML += `<br/>`;
+                });
+                test.innerHTML += '}';
+
+            const straightContainer = document.getElementById('straight-input');
+            cities.forEach(city => {
+                straightContainer.innerHTML += `
+                    <div style="margin: 4px 0;" >
+                        <label for="${city}" style="margin: 0 5px;" >${city}</label>
+                        <input id='${city}' class='city-straight' placeholder="" />
+                    </div>
+                `
+            });
+        }
+        function submit(e){
+            e.preventDefault();
+            // SUBMIT HERE
+            const straights = document.getElementsByClassName('city-straight');
+            console.log(straights);
+            [...straights].forEach(str => {
+                straight_line[str.id] = str.value
+            });
+            // DATA TO SEND TO DJANGO VIEW
+            console.log('GRAPH', GRAPH);
+            console.log('straight_line', straight_line);
+            test(e);
+            
+        }
+        function test(e){
+            e.preventDefault();
+            token = $("#change_password-form").find('input[name=csrfmiddlewaretoken]').val();
+            let start = $('#start').val()
+            let end = $('#end').val()
+            // csrfmiddlewaretoken: token,
+            $.ajax({
+                type: 'GET',
+                url: "{% url 'index' %}",
+                success: function(data) {
+                    let resView = document.getElementById('cost');
+                    if(data !== false){
+                        resView.innerText = `Total Min Cost Is : ${data}`;
+                    }else{
+                        resView.innerText = `City Not FOund !`;
+                    }
+                    resView.style.display = 'block';
+                    console.log('data',data);
+                },
+                data: {
+                    data: JSON.stringify(straight_line),
+                    graph: JSON.stringify(GRAPH),
+                    start: start.toLowerCase(),
+                    end: end.toLowerCase()
+                },
+                dataType: 'json'
+            }).done((res) => {
+                console.log('res');
+                console.log('res', res);
+            })
+            // window.location.href ='/polls/result';
+        }
+
+   </script>
+</html>
